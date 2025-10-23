@@ -22,55 +22,81 @@ El trabajo se divide en:
 5. Se utiliza **Jupyter NoteBook** para dividir el código en partes y trabajar en ellas sin importar el orden: escribir, probar funciones, cargar un archivo en la memoria y procesar el contenido. Con lenguaje de **Python**
 ## 1. Adquisición de datos 
 Se configura una tarea para el modulo DAQ para que reciba los datos en una frecuencia de muestreo de 2000 Hz 
-```python
-#  Parámetros de adquisición
-puerto= "Dev3/ai0"  # Según el canal de tu DAQ
-fmuestreo = 2000  # Frecuencia de muestreo en Hz
-t_ventana = 2000  # Cantidad de muestras a mostrar en la gráfica
-duracion = 60  # Duración de la adquisición en segundos
+```pythonimport nidaqmx
+import numpy as np
+import matplotlib.pyplot as plt
+from collections import deque
+from IPython.display import display, clear_output
+import csv
 
-#  Estructura de datos para almacenar la señal en tiempo real
-emg_buffer = deque([0] * t_ventana, maxlen=t_ventana)  # Guarda los últimos datos capturados
-tiempo_buffer = deque(np.linspace(0, (t_ventana - 1) / fmuestreo,t_ventana), maxlen=t_ventana)# Eje X desde 0
+# ------------------- PARÁMETROS DE ADQUISICIÓN -------------------
+puerto = "Dev1/ai0"       # Cambia según tu DAQ
+fmuestreo = 2000          # Frecuencia de muestreo [Hz]
+t_ventana = 2000          # Muestras por iteración
+duracion = 60             # Duración total [s]
+ganancia = 50             # 🔹 Factor de amplificación digital (ajústalo entre 10–200)
 
-#  Guardar los datos
-filename = "emg_data.csv"
+# ------------------- BUFFERS PARA LA GRÁFICA -------------------
+emg_buffer = deque([0] * t_ventana, maxlen=t_ventana)
+tiempo_buffer = deque(np.linspace(0, (t_ventana - 1) / fmuestreo, t_ventana), maxlen=t_ventana)
+
+# ------------------- ARCHIVO DE SALIDA -------------------
+filename = "emg_data_amplificada.txt"
+
 with open(filename, mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(["Tiempo (s)", "Voltaje (V)"])  # Escribir encabezado
+    writer = csv.writer(file, delimiter='\t')
+    writer.writerow(["Tiempo (s)", f"Voltaje (V) * Ganancia({ganancia}x)"])
 
-    #  Tarea de adquisición
+    # ------------------- CONFIGURACIÓN DE LA TAREA -------------------
     with nidaqmx.Task() as task:
         task.ai_channels.add_ai_voltage_chan(puerto)
         task.timing.cfg_samp_clk_timing(fmuestreo)
 
-        print("Adquiriendo datos en tiempo real... Presiona 'Ctrl + C' para detener.")
+        print(f"📡 Adquiriendo datos con ganancia digital de {ganancia}x...")
+        print("Presiona 'Ctrl + C' para detener.\n")
 
-        #  Inicializar la figura
-        plt.ion()  # Modo interactivo
+        # Inicializar gráfico interactivo
+        plt.ion()
         fig, ax = plt.subplots(figsize=(10, 4))
-        line, = ax.plot(tiempo_buffer, emg_buffer, label="Señal EMG")
+        line, = ax.plot(tiempo_buffer, emg_buffer, label="Señal EMG Amplificada")
         ax.set_xlabel("Tiempo (s)")
-        ax.set_ylabel("Voltaje (V)")
-        ax.set_title("Señal EMG en Tiempo Real")
+        ax.set_ylabel("Voltaje (V) (escalado)")
+        ax.set_title(f"Señal EMG en Tiempo Real - Ganancia {ganancia}x")
         ax.legend()
         ax.grid(True)
-        ax.set_ylim([-1, 5])  # Ajuste de voltaje de -1V a 1V
+        ax.set_ylim([-2, 2])  # Ajuste visual (puedes cambiarlo si tu señal crece más)
 
-        #  Bucle de adquisición en tiempo real
+        # ------------------- BUCLE DE ADQUISICIÓN -------------------
         try:
             total_samples = int(duracion * fmuestreo)
             for i in range(0, total_samples, t_ventana):
-                # Leer múltiples muestras a la vez
                 emg_data = task.read(number_of_samples_per_channel=t_ventana)
 
-                if isinstance(emg_data, list):  # Confirmar que es una lista
+                if isinstance(emg_data, list):
+                    # Aplicar ganancia digital
+                    emg_data = np.array(emg_data) * ganancia
+
+                    # Actualizar buffer
                     emg_buffer.extend(emg_data)
 
-                    # Guardar los datos en el archivo
+                    # Guardar datos amplificados
                     for j in range(len(emg_data)):
                         tiempo = (i + j) / fmuestreo
                         writer.writerow([tiempo, emg_data[j]])
+
+                    # Actualizar gráfico
+                    line.set_ydata(emg_buffer)
+                    clear_output(wait=True)
+                    display(fig)
+                    plt.pause(0.01)
+
+        except KeyboardInterrupt:
+            print("\n⛔ Adquisición detenida por el usuario.")
+
+        plt.ioff()
+        plt.show()
+
+print(f"\n✅ Archivo guardado exitosamente como '{filename}'.")
 ```
 Esta parte del código permite almacenar los datos de 60s tomados en tiempo real y guardarlos en un archivo **.csv** para luego poder realizar un DataFrame y visualizar el voltaje y el tiempo para graficar y poder aplicar el filtro digital.
 <p align="center">
