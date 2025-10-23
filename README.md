@@ -13,7 +13,7 @@ El trabajo se divide en:
 3. La frecuencia de la señal electromiográfica *(EMG)* de un músculo puede variar entre 20 y 100 Hz, asi que utilizamos **2000Hz** para la frecuencia de muestreo.
 4. Se debe instalar las librerias:
    + Nidaqmx
-   + Csv.
+   + txt.
    + Numpy.
    + Pandas.
    + Matplotlib.
@@ -108,10 +108,10 @@ Esta parte del código permite almacenar los datos de 60s tomados en tiempo real
 
 ## 2  Filtrado de señal:
 
-Inicialmente se extraen los datos del archivo .csv y se guardan en la variable *data*, para luego separarlo por columnas en *tiempo* y *voltaje*
+Inicialmente se extraen los datos del archivo .txt y se guardan en la variable *data*, para luego separarlo por columnas en *tiempo* y *voltaje*
 
 ```python
-#  Cargar los datos desde el archivo CSV
+#  Cargar los datos desde el archivo txt
 filename = "emg_data.csv"
 data = pd.read_csv(filename)
 tiempos = data['Tiempo (s)'].values
@@ -152,13 +152,13 @@ filtrada = filtfilt(b_baja, a_baja, pasa_altas)
 
 Luego se guarda la señal filtrada en un archivo csv para proceder con el aventanamiento y el análisis espectral
 ```python
-# Guardar la señal filtrada en un archivo CSV
+# Guardar la señal filtrada en un archivo txt
 filtrada_df = pd.DataFrame({
     'Tiempo (s)': tiempos,
     'Voltaje (V)': filtrada
 })
 
-# Guardar en CSV
+# Guardar en txt
 nombre_archivo_filtrado = "emg_filtrada.csv"
 filtrada_df.to_csv(nombre_archivo_filtrado, index=False)
 
@@ -170,9 +170,9 @@ Una vez obtenida la señal EMG filtrada, aplicamos una ventana para suavizar los
 Se deben crear tantas ventanas como número de contracciones se hicieron hasta llegar al fallo muscular, con el objetivo de comparar la señal y su espectro antes de la fatiga y durante la fatiga, lo que correspondería a la primera y última ventana. Durante los 60 segundos se contabilizaron 30 contracciones.
 
 ```python
-# Cargar la señal desde el CSV
+# Cargar la señal desde el txt
 
-df = pd.read_csv("emg_filtrada.csv")
+df = pd.read_ptxt("emg_filtrada.csv")
 
 tiempos = df["Tiempo (s)"].values
 voltajes = df["Voltaje (V)"].values
@@ -216,7 +216,7 @@ plt.legend(["Señal EMG", "Ventanas Hamming"])
 plt.tight_layout()
 plt.show()
 ```
-Se carga la señal EMG filtrada previamente guardada desde el archivo CSV y se detectan los picos que representan posibles contracciones musculares, esto con el objetivo de identificar la posición de cada contracción, utilizando un umbral basado en la media y desviación estándar de la señal. A continuación, se define una ventana de Hamming de 200 milisegundos de duración, la cual se aplica a segmentos de la señal centrados en cada pico detectado, esto permite resaltar las contracciones de forma más clara y reducir el efecto del ruido. Finalmente, se grafica sobre la señal filtrada, la señal con los segmentos aventanados para visualizar cómo se aíslan las contracciones musculares mediante el uso de ventanas.
+Se carga la señal EMG filtrada previamente guardada desde el archivo txt y se detectan los picos que representan posibles contracciones musculares, esto con el objetivo de identificar la posición de cada contracción, utilizando un umbral basado en la media y desviación estándar de la señal. A continuación, se define una ventana de Hamming de 200 milisegundos de duración, la cual se aplica a segmentos de la señal centrados en cada pico detectado, esto permite resaltar las contracciones de forma más clara y reducir el efecto del ruido. Finalmente, se grafica sobre la señal filtrada, la señal con los segmentos aventanados para visualizar cómo se aíslan las contracciones musculares mediante el uso de ventanas.
 
 ![image](https://github.com/user-attachments/assets/1363ae28-3c01-407b-aea9-22f14fd63e6a)
 
