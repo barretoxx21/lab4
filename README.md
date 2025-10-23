@@ -98,7 +98,7 @@ with open(filename, mode='w', newline='') as file:
 
 print(f"\n✅ Archivo guardado exitosamente como '{filename}'.")
 ```
-Esta parte del código permite almacenar los datos de 60s tomados en tiempo real y guardarlos en un archivo **.csv** para luego poder realizar un DataFrame y visualizar el voltaje y el tiempo para graficar y poder aplicar el filtro digital.
+Esta parte del código permite almacenar los datos de 60s tomados en tiempo real y guardarlos en un archivo **.txt** para luego poder realizar un DataFrame y visualizar el voltaje y el tiempo para graficar y poder aplicar el filtro digital.
 <p align="center">
     <img src="original.png" 
          alt="Grafica original" width="1100">
